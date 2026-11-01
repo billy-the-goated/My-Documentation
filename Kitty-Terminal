@@ -1,0 +1,209 @@
+# Kitty Terminal Setup
+
+A modern, sleek Kitty terminal with a blurry transparent background, rounded tabs and the Catppuccin Mocha theme. Includes how to create the config file and fix common errors.
+
+## 1. Install Kitty and the font
+
+```bash
+sudo pacman -S kitty ttf-jetbrains-mono-nerd
+```
+
+Check your version (blur needs a recent one):
+
+```bash
+kitty --version
+```
+
+## 2. Create the config file
+
+Kitty reads its settings from `~/.config/kitty/kitty.conf`. This file does not exist by default, so you create it yourself.
+
+**Option A: type or paste it in an editor**
+
+```bash
+mkdir -p ~/.config/kitty
+nano ~/.config/kitty/kitty.conf
+```
+
+Paste the config from section 3, then save with `Ctrl+O`, `Enter`, and exit with `Ctrl+X`.
+
+**Option B: copy a file you already downloaded**
+
+```bash
+mkdir -p ~/.config/kitty
+cp ~/Downloads/kitty.conf ~/.config/kitty/kitty.conf
+```
+
+**Option C: open it from inside Kitty**
+
+Press `Ctrl+Shift+F2`. Kitty opens the config in your editor (and creates it if needed).
+
+**Apply changes:** press `Ctrl+Shift+F5` to reload, or open a new Kitty window. No restart needed.
+
+## 3. The config
+
+```conf
+# ~/.config/kitty/kitty.conf
+# Modern, sleek Kitty: blur + transparency + Catppuccin Mocha
+
+# ---------- Font ----------
+font_family      JetBrainsMono Nerd Font
+bold_font        auto
+italic_font      auto
+bold_italic_font auto
+font_size        12.0
+disable_ligatures never
+
+# ---------- Window ----------
+background_opacity      0.80
+background_blur         32
+dynamic_background_opacity yes
+hide_window_decorations yes
+window_padding_width    14
+window_border_width     0
+remember_window_size    no
+initial_window_width    100c
+initial_window_height   30c
+confirm_os_window_close 0
+
+# ---------- Cursor ----------
+cursor_shape            beam
+cursor_beam_thickness   1.5
+cursor_blink_interval   0.5
+cursor_stop_blinking_after 15
+
+# ---------- Behaviour ----------
+scrollback_lines        10000
+enable_audio_bell       no
+mouse_hide_wait         3.0
+url_style               curly
+copy_on_select          clipboard
+
+# ---------- Tabs ----------
+tab_bar_edge            bottom
+tab_bar_style           powerline
+tab_powerline_style     round
+tab_bar_min_tabs        2
+tab_title_template      " {index}: {title} "
+active_tab_font_style   bold
+
+# ---------- Colors: Catppuccin Mocha ----------
+foreground              #cdd6f4
+background              #1e1e2e
+selection_foreground    #1e1e2e
+selection_background    #f5e0dc
+cursor                  #f5e0dc
+cursor_text_color       #1e1e2e
+url_color               #f5e0dc
+
+active_border_color     #cba6f7
+inactive_border_color   #6c7086
+
+active_tab_foreground   #11111b
+active_tab_background   #cba6f7
+inactive_tab_foreground #cdd6f4
+inactive_tab_background #181825
+tab_bar_background      #11111b
+
+color0  #45475a
+color8  #585b70
+color1  #f38ba8
+color9  #f38ba8
+color2  #a6e3a1
+color10 #a6e3a1
+color3  #f9e2af
+color11 #f9e2af
+color4  #89b4fa
+color12 #89b4fa
+color5  #f5c2e7
+color13 #f5c2e7
+color6  #94e2d5
+color14 #94e2d5
+color7  #bac2de
+color15 #a6adc8
+
+# ---------- Keybindings ----------
+map ctrl+shift+n new_os_window
+map ctrl+plus    change_font_size all +1.0
+map ctrl+minus   change_font_size all -1.0
+map ctrl+0       change_font_size all 0
+```
+
+## 4. Getting the blur to work
+
+Transparency works everywhere, but blur depends on your desktop or compositor.
+
+### KDE Plasma
+
+Works out of the box with a recent Kitty. If there's no blur, enable **System Settings → Desktop Effects → Blur**.
+
+### i3 or any other X11 window manager
+
+Kitty cannot blur by itself here, so use `picom`:
+
+```bash
+sudo pacman -S picom
+```
+
+Create `~/.config/picom/picom.conf`:
+
+```conf
+backend = "glx";
+blur-method = "dual_kawase";
+blur-strength = 6;
+blur-background-exclude = [ "window_type = 'dock'" ];
+```
+
+Start it with `picom &`. To start it on every login, add this to your i3 config:
+
+```
+exec_always --no-startup-id picom
+```
+
+Keep `background_opacity` below `1.0`, otherwise there is nothing to see through and no blur shows.
+
+## 5. Tweaks
+
+| Want | Change |
+| --- | --- |
+| More see-through | Lower `background_opacity` (try `0.70`) |
+| More solid | Raise `background_opacity` (try `0.90`) |
+| Stronger blur | Raise `background_blur` (KDE) or `blur-strength` (picom) |
+| Adjust live | `Ctrl+Shift+A` then `M` (more opaque) or `L` (less opaque) |
+| Different theme | Run `kitten themes` for an interactive theme picker |
+| Bigger/smaller text | Change `font_size` |
+
+## 6. Troubleshooting
+
+### Error: `Failed to launch child: /bin/zsh` / `No such file or directory`
+
+**What the problem is:** Kitty is trying to start zsh, but zsh is not installed.
+
+**Why it went wrong:** The config has a `shell /bin/zsh` line (often copied from an example). Kitty obeys it even if that shell doesn't exist. On a minimal Arch install you usually only have bash.
+
+**Fix:**
+
+1. Check which shells you have: `cat /etc/shells`
+2. Delete the `shell` line from `kitty.conf` so Kitty uses your default shell, or set it to what you have: `shell /bin/bash`
+3. If Kitty closes instantly and you can't edit the file, use another terminal or a TTY (`Ctrl+Alt+F3`) and run `nano ~/.config/kitty/kitty.conf`.
+
+**In future:** Only set `shell` if you need something other than your default. Verify with `which zsh` before pointing the config at it. To use zsh, install it first with `sudo pacman -S zsh`.
+
+### Icons show as boxes or question marks
+
+The Nerd Font isn't installed or the name is wrong. Install it and confirm the family name:
+
+```bash
+sudo pacman -S ttf-jetbrains-mono-nerd
+fc-list | grep -i jetbrains
+```
+
+### Config errors on startup
+
+Kitty prints a message listing the bad line. Run `kitty --debug-config` to see the settings it actually loaded.
+
+### No blur
+
+- Check `kitty --version` is recent.
+- On i3, make sure `picom` is running: `pgrep picom`
+- Make sure `background_opacity` is below `1.0`.
