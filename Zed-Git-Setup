@@ -1,0 +1,78 @@
+# Git Setup for Zed Editor
+
+Fixing GitHub authentication errors when pushing or pulling from Zed.
+
+## The error
+
+```
+remote: Invalid username or token. Password authentication is not supported for Git operations.
+fatal: Authentication failed for 'https://github.com/<username>/<repo>/'
+```
+
+## What the problem is
+
+GitHub no longer accepts your account password for Git operations over HTTPS (removed in 2021). When the remote URL starts with `https://github.com/...`, Git asks for a password and GitHub rejects it, even if the password is correct.
+
+Zed uses your system `git`, so this is not a Zed issue.
+
+## Why it went wrong
+
+Git was given your GitHub account password, or an expired/invalid token. HTTPS needs a **Personal Access Token (PAT)** instead of a password, and SSH needs a key.
+
+## Fix option 1: SSH (recommended, set up once)
+
+1. Generate a key and print the public part:
+
+   ```bash
+   ssh-keygen -t ed25519 -C "your_email@example.com"
+   cat ~/.ssh/id_ed25519.pub
+   ```
+
+2. Copy the output.
+3. On GitHub, go to **Settings → SSH and GPG keys → New SSH key** and paste it in.
+4. Switch the repo from HTTPS to SSH:
+
+   ```bash
+   git remote set-url origin git@github.com:<username>/<repo>.git
+   ```
+
+5. Test the connection (it should greet you by username):
+
+   ```bash
+   ssh -T git@github.com
+   ```
+
+## Fix option 2: GitHub CLI (easiest on Arch)
+
+```bash
+sudo pacman -S github-cli
+gh auth login          # choose GitHub.com → HTTPS → login with browser
+gh auth setup-git      # makes git use those credentials
+```
+
+## Fix option 3: Personal Access Token
+
+1. On GitHub, go to **Settings → Developer settings → Personal access tokens** and generate a token with the `repo` scope.
+2. Run `git push` in Zed's built-in terminal (not the Git panel). When it asks for a password, paste the **token**.
+3. Optional: avoid re-entering it each time:
+
+   ```bash
+   git config --global credential.helper store
+   ```
+
+   > Note: this saves the token in plain text in `~/.git-credentials`.
+
+## Check your current remote
+
+```bash
+git remote -v
+```
+
+- `https://github.com/...` means you need a token or the GitHub CLI.
+- `git@github.com:...` means you are using SSH.
+
+## What to do differently in future
+
+- Never use your GitHub account password with Git. Use SSH keys or a token.
+- Prefer SSH remotes (`git@github.com:...`) so you don't have to deal with token expiry.
+- If auth fails in Zed's Git panel, run the same command in a terminal first. It shows the real prompts and error messages.
